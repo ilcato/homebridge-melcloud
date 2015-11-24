@@ -13,6 +13,6 @@ Look for a sample config in [config.json example](https://github.com/ilcato/home
 Simply specify you Melcloud credentials.
 
 # Credit
-Thanks to Simon “mGeek” Rubuano for its work on [reverse engineering Melcloud] (http://mgeek.fr/blog/un-peu-de-reverse-engineering-sur-melcloud)
+Thanks to Simon “mGeek” Rubuano for his work on [reverse engineering Melcloud] (http://mgeek.fr/blog/un-peu-de-reverse-engineering-sur-melcloud)
 
 
