@@ -70,6 +70,7 @@ MelcloudPlatform.prototype = {
 	  if (err) {
 		that.log("There was a problem sending login to: " + url);
 		that.log(err);
+		callback([]);
 	  } else {
 		var r = eval("(" + response.body + ")");
 		that.ContextKey = r.LoginData.ContextKey;
