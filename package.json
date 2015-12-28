@@ -1,6 +1,6 @@
 {
   "name": "homebridge-melcloud",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Homebridge plugin for Mitsubishi Melcloud",
   "note": "peerDependencies is hardcoded to peerDepdendencies in homebridge!!!",
   "main": "index.js",
