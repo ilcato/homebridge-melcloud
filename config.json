@@ -12,6 +12,7 @@
             {
             "platform": "Melcloud",
             "name": "Melcloud",
+            "language": "0",
             "username": "PUT USERNAME OF YOUR MELCLOUD ACCOUNT HERE",
             "password": "PUT PASSWORD OF YOUR MELCLOUD ACCOUNT HERE"
         }

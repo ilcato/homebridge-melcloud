@@ -21,10 +21,10 @@ var request = require("request");
 
 function MelcloudPlatform(log, config){
   	this.log          = log;
+  	this.language = config["language"];
   	this.username = config["username"];
   	this.password = config["password"];
 	this.ContextKey = null;
-	this.BuildingID = null;
 	this.UseFahrenheit = null;
 	this.CurrentHeatingCoolingStateUUID = (new Characteristic.CurrentHeatingCoolingState()).UUID;
 	this.TargetHeatingCoolingStateUUID = (new Characteristic.TargetHeatingCoolingState()).UUID;
@@ -56,7 +56,7 @@ MelcloudPlatform.prototype = {
 			CaptchaChallenge: "",
 			CaptchaResponse: "",
 			Email: this.username,
-			Language: "7",
+			Language: this.language,
 			Password: this.password,
 			Persist: "true"
 	};
@@ -96,52 +96,68 @@ MelcloudPlatform.prototype = {
 		that.log(err);
 	  } else {
 		var r = eval("(" + response.body + ")");
-		// Iterate the "areas", assuming only one building
 		var foundAccessories = [];
-		var building = r[0];
-		that.BuildingID = building.ID;
-		for (var a = 0; a < building.Structure.Areas.length; a++) {
-			// Iterate the "Devices"
-			var area = building.Structure.Areas[a];
-			for (var d = 0; d < area.Devices.length; d++){
-           		var accessory = new MelcloudBridgedAccessory([
-           			{
-           				controlService: new Service.Thermostat(area.Devices[d].DeviceName),
-           				characteristics: [
-           					Characteristic.CurrentHeatingCoolingState,
-           					Characteristic.TargetHeatingCoolingState,
-           					Characteristic.CurrentTemperature,
-           					Characteristic.TargetTemperature,
-           					Characteristic.TemperatureDisplayUnits,
-           					Characteristic.RotationSpeed,
-           					Characteristic.CurrentHorizontalTiltAngle,
-           					Characteristic.TargetHorizontalTiltAngle,
-           					Characteristic.CurrentVerticalTiltAngle,
-           					Characteristic.TargetVerticalTiltAngle
-           				]
-           			}
-           		]);
-				accessory.platform 			= that;
-				accessory.remoteAccessory	= area.Devices[d];
-				accessory.id 				= area.Devices[d].DeviceID;
-				accessory.name				= area.Devices[d].DeviceName;
-				accessory.model				= "";
-				accessory.manufacturer		= "Mitsubishi";
-				accessory.serialNumber		= area.Devices[d].SerialNumber;
-				accessory.airInfo			= null;
-				foundAccessories.push(accessory);
+		for (var b = 0; b < r.length; b++) {
+			var building = r[b];
+			var devices = building.Structure.Devices;
+			that.createAccessories(building, devices, foundAccessories);
+			for (var f = 0; f < building.Structure.Floors.length; f++) {
+				var devices = building.Structure.Floors[f].Devices;
+				that.createAccessories(building, devices, foundAccessories);
+				for (var a = 0; a < building.Structure.Floors[f].Areas.length; a++) {
+					var devices = building.Structure.Floors[f].Areas[a].Devices;
+					that.createAccessories(building, devices, foundAccessories);
+				}
+			}
+			for (var a = 0; a < building.Structure.Areas.length; a++) {
+				var devices = building.Structure.Areas[a].Devices;
+				that.createAccessories(building, devices, foundAccessories);
 			}
 		}
         callback(foundAccessories);
 	  }
 	});
   },
+  createAccessories: function(building, devices, foundAccessories) {
+	for (var d = 0; d < devices.length; d++){
+		var device = devices[d];
+		var accessory = new MelcloudBridgedAccessory([
+			{
+				controlService: new Service.Thermostat(device.DeviceName),
+				characteristics: [
+					Characteristic.CurrentHeatingCoolingState,
+					Characteristic.TargetHeatingCoolingState,
+					Characteristic.CurrentTemperature,
+					Characteristic.TargetTemperature,
+					Characteristic.TemperatureDisplayUnits,
+					Characteristic.RotationSpeed,
+					Characteristic.CurrentHorizontalTiltAngle,
+					Characteristic.TargetHorizontalTiltAngle,
+					Characteristic.CurrentVerticalTiltAngle,
+					Characteristic.TargetVerticalTiltAngle
+				]
+			}
+		]);
+		accessory.platform 			= this;
+		accessory.remoteAccessory	= device;
+		accessory.id 				= device.DeviceID;
+		accessory.name				= device.DeviceName;
+		accessory.model				= "";
+		accessory.manufacturer		= "Mitsubishi";
+		accessory.serialNumber		= device.SerialNumber;
+		accessory.airInfo			= null;
+		accessory.buildingId		= building.ID;
+		this.log("Found device: " + device.DeviceName);
+		foundAccessories.push(accessory);
+	}
+
+  },
   proxyAirInfo: function(callback, characteristic, service, homebridgeAccessory, value, operation) {
   	if (homebridgeAccessory.airInfo != null) {
   		operation(callback, characteristic, service, homebridgeAccessory, value);
   		return;
   	}
-  	var url = "https://app.melcloud.com/Mitsubishi.Wifi.Client/Device/Get?id=" + homebridgeAccessory.id + "&buildingID=" + homebridgeAccessory.platform.BuildingID;
+  	var url = "https://app.melcloud.com/Mitsubishi.Wifi.Client/Device/Get?id=" + homebridgeAccessory.id + "&buildingID=" + homebridgeAccessory.buildingId;
 	var method = "get";
 	var that = this;
 	request({
