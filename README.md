@@ -9,7 +9,7 @@ The plugin is published through [NPM](https://www.npmjs.com/package/homebridge-m
 
 # Configuration
 Remember to configure the plugin in config.json in your home directory inside the .homebridge directory.
-Look for a sample config in [config.json example](https://github.com/ilcato/homebridge-melcloud/blob/master/config.json)
+Look for a sample config in [config.json example](https://github.com/ilcato/homebridge-melcloud/blob/master/config.json). 
 Simply specify you Melcloud credentials and the language id from one of the following numeric codes:
 + 0	=	en	English
 + 1	=	bg	Български
