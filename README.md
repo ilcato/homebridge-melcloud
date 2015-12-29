@@ -38,7 +38,7 @@ Simply specify you Melcloud credentials and the language id from one of the foll
 + 24	=	ro	Română
 + 25	=	sl	Slovenščina
 
-#Note
+# Note
 Siri is only able to read and change the target temperature of the Mitsubishi units. Siri can not change the heating/cooling/auto modes directly.
 To get around this limitation, you can create a scene with an app like Elgato or iDevices. For example:
 a scene named "Switch on the downstairs air conditioning" can turn on the downstairs AC in cooling mode, set it to 25°C and switch the Nest thermostat off.
