@@ -260,7 +260,7 @@ MelcloudPlatform.prototype = {
 	}
   },
   setAccessoryValue: function(callback, characteristic, service, homebridgeAccessory, value) {
-  	var r = homebridgeAccessory.airInfo;
+  	var r = {};
 	if (characteristic.UUID == homebridgeAccessory.platform.TargetHeatingCoolingStateUUID) {
 		switch (value) {
 			case Characteristic.TargetHeatingCoolingState.OFF:
@@ -312,7 +312,7 @@ MelcloudPlatform.prototype = {
 	}
   	var url = "https://app.melcloud.com/Mitsubishi.Wifi.Client/Device/SetAta";
 	var method = "post";
-  	var body = JSON.stringify(homebridgeAccessory.airInfo);
+  	var body = JSON.stringify(r);
 	var that = this;
 	request({
 		url: url,
