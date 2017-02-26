@@ -153,10 +153,10 @@ MelcloudPlatform.prototype = {
 
   },
   proxyAirInfo: function(callback, characteristic, service, homebridgeAccessory, value, operation) {
-  	if (homebridgeAccessory.airInfo != null) {
-  		operation(callback, characteristic, service, homebridgeAccessory, value);
-  		return;
-  	}
+//  	if (homebridgeAccessory.airInfo != null) {
+//  		operation(callback, characteristic, service, homebridgeAccessory, value);
+//  		return;
+//  	}
   	var url = "https://app.melcloud.com/Mitsubishi.Wifi.Client/Device/Get?id=" + homebridgeAccessory.id + "&buildingID=" + homebridgeAccessory.buildingId;
 	var method = "get";
 	var that = this;
