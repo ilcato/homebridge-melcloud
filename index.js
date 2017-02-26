@@ -174,9 +174,9 @@ MelcloudPlatform.prototype = {
   		homebridgeAccessory.airInfo = eval("(" + response.body + ")");
   		operation(callback, characteristic, service, homebridgeAccessory, value);
 	  	// Cache airInfo data for 2 minutes
-  		setTimeout( function(){
-			homebridgeAccessory.airInfo = null;
-		}, 120*1000 );
+//  		setTimeout( function(){
+//			homebridgeAccessory.airInfo = null;
+//		}, 120*1000 );
 	  }
     });
   },
@@ -260,7 +260,7 @@ MelcloudPlatform.prototype = {
 	}
   },
   setAccessoryValue: function(callback, characteristic, service, homebridgeAccessory, value) {
-  	var r = {};
+	var r = homebridgeAccessory.airInfo;
 	if (characteristic.UUID == homebridgeAccessory.platform.TargetHeatingCoolingStateUUID) {
 		switch (value) {
 			case Characteristic.TargetHeatingCoolingState.OFF:
@@ -312,7 +312,7 @@ MelcloudPlatform.prototype = {
 	}
   	var url = "https://app.melcloud.com/Mitsubishi.Wifi.Client/Device/SetAta";
 	var method = "post";
-  	var body = JSON.stringify(r);
+	var body = JSON.stringify(homebridgeAccessory.airInfo);
 	var that = this;
 	request({
 		url: url,
