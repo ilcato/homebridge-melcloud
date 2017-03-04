@@ -167,10 +167,12 @@ MelcloudPlatform.prototype = {
 		"X-MitsContextKey" : homebridgeAccessory.platform.ContextKey
 		}
 	}, function(err, response) {
-	  if (err) {
+	  if (err || response.body.search("<!DOCTYPE html>") != -1) {
 		that.log("There was a problem getting info from: " + url);
 		that.log(err);
+	    callback();
 	  } else {
+		that.log(response.body);
   		homebridgeAccessory.airInfo = eval("(" + response.body + ")");
   		operation(callback, characteristic, service, homebridgeAccessory, value);
 	  	// Cache airInfo data for 2 minutes
@@ -323,11 +325,11 @@ MelcloudPlatform.prototype = {
 			"content-type": "application/json"
 		}
 	}, function(err, response) {
-	  callback();
 	  if (err) {
 		that.log("There was a problem setting info to: " + url);
 		that.log(err);
 	  }
+	  callback();
     });
   },
   updateApplicationOptions: function(UseFahrenheit) {
