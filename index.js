@@ -146,6 +146,8 @@ MelcloudPlatform.prototype = {
 		accessory.manufacturer		= "Mitsubishi";
 		accessory.serialNumber		= device.SerialNumber;
 		accessory.airInfo			= null;
+		accessory.airInfoRequestSent = false;
+		accessory.airInfoRequestQueue = [];
 		accessory.buildingId		= building.ID;
 		this.log("Found device: " + device.DeviceName);
 		foundAccessories.push(accessory);
@@ -153,10 +155,25 @@ MelcloudPlatform.prototype = {
 
   },
   proxyAirInfo: function(callback, characteristic, service, homebridgeAccessory, value, operation) {
-//  	if (homebridgeAccessory.airInfo != null) {
-//  		operation(callback, characteristic, service, homebridgeAccessory, value);
-//  		return;
-//  	}
+  	if (homebridgeAccessory.airInfo != null) {
+  		operation(callback, characteristic, service, homebridgeAccessory, value);
+  		return;
+  	}
+  	if (homebridgeAccessory.airInfoRequestSent == true) {
+		homebridgeAccessory.airInfoRequestQueue.push(
+			{
+				"callback": callback,
+				"characteristic": characteristic,
+				"service": service,
+				"homebridgeAccessory": homebridgeAccessory,
+				"value": value,
+				"operation": operation
+			}
+		);
+  		return;
+  	}
+	homebridgeAccessory.airInfoRequestSent = true;
+  	this.log(homebridgeAccessory.name);
   	var url = "https://app.melcloud.com/Mitsubishi.Wifi.Client/Device/Get?id=" + homebridgeAccessory.id + "&buildingID=" + homebridgeAccessory.buildingId;
 	var method = "get";
 	var that = this;
@@ -169,16 +186,28 @@ MelcloudPlatform.prototype = {
 	}, function(err, response) {
 	  if (err || response.body.search("<!DOCTYPE html>") != -1) {
 		that.log("There was a problem getting info from: " + url);
-		that.log(err);
+	  	that.log("for device: " + homebridgeAccessory.name);
+		that.log("Error: " + err);
+  		homebridgeAccessory.airInfo = null;
+		homebridgeAccessory.airInfoRequestSent = false;
+		for (var i = 0; i < homebridgeAccessory.airInfoRequestQueue.length; i++) {
+			homebridgeAccessory.airInfoRequestQueue[i].callback();
+		}
+		homebridgeAccessory.airInfoRequestQueue = [];
 	    callback();
 	  } else {
-		that.log(response.body);
   		homebridgeAccessory.airInfo = eval("(" + response.body + ")");
+		homebridgeAccessory.airInfoRequestSent = false;
   		operation(callback, characteristic, service, homebridgeAccessory, value);
+		for (var i = 0; i < homebridgeAccessory.airInfoRequestQueue.length; i++) {
+			var c = homebridgeAccessory.airInfoRequestQueue[i];
+			c.operation(c.callback, c.characteristic, c.service, c.homebridgeAccessory, c.value);
+		}
+		homebridgeAccessory.airInfoRequestQueue = [];
 	  	// Cache airInfo data for 2 minutes
-//  		setTimeout( function(){
-//			homebridgeAccessory.airInfo = null;
-//		}, 120*1000 );
+  		setTimeout( function(){
+			homebridgeAccessory.airInfo = null;
+		}, 120*1000 );
 	  }
     });
   },
