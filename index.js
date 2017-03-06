@@ -18,7 +18,6 @@
 var Service, Characteristic;
 var request = require("request");
 
-
 function MelcloudPlatform(log, config){
   	this.log          = log;
   	this.language = config["language"];
@@ -36,6 +35,8 @@ function MelcloudPlatform(log, config){
 	this.TargetHorizontalTiltAngleUUID = (new Characteristic.TargetHorizontalTiltAngle()).UUID;
 	this.CurrentVerticalTiltAngleUUID = (new Characteristic.CurrentVerticalTiltAngle()).UUID;
 	this.TargetVerticalTiltAngleUUID = (new Characteristic.TargetVerticalTiltAngle()).UUID;
+	this.currentAirInfoExecution = 0;
+	this.airInfoExecutionPending = [];
   }
 
 module.exports = function(homebridge) {
@@ -146,8 +147,6 @@ MelcloudPlatform.prototype = {
 		accessory.manufacturer		= "Mitsubishi";
 		accessory.serialNumber		= device.SerialNumber;
 		accessory.airInfo			= null;
-		accessory.airInfoRequestSent = false;
-		accessory.airInfoRequestQueue = [];
 		accessory.buildingId		= building.ID;
 		this.log("Found device: " + device.DeviceName);
 		foundAccessories.push(accessory);
@@ -156,60 +155,54 @@ MelcloudPlatform.prototype = {
   },
   proxyAirInfo: function(callback, characteristic, service, homebridgeAccessory, value, operation) {
   	if (homebridgeAccessory.airInfo != null) {
+	  	this.log("Data already available for: " + homebridgeAccessory.name + " - " + characteristic.displayName);
   		operation(callback, characteristic, service, homebridgeAccessory, value);
+		if (this.airInfoExecutionPending.length) {
+			var args = this.airInfoExecutionPending.shift()
+			this.log("Dequeuing remote request for. " + args[3].name + " - " + args[1].displayName);
+			this.proxyAirInfo.apply(this, args);
+		}			
   		return;
   	}
-  	if (homebridgeAccessory.airInfoRequestSent == true) {
-		homebridgeAccessory.airInfoRequestQueue.push(
-			{
-				"callback": callback,
-				"characteristic": characteristic,
-				"service": service,
-				"homebridgeAccessory": homebridgeAccessory,
-				"value": value,
-				"operation": operation
+  	this.log("Getting data for: " + homebridgeAccessory.name + " - " + characteristic.displayName);
+	if (this.currentAirInfoExecution < 2) {
+		homebridgeAccessory.airInfoRequestSent = true;
+		this.currentAirInfoExecution++;
+		var url = "https://app.melcloud.com/Mitsubishi.Wifi.Client/Device/Get?id=" + homebridgeAccessory.id + "&buildingID=" + homebridgeAccessory.buildingId;
+		var method = "get";
+		var that = this;
+		request({
+			url: url,
+			method: method,
+			headers: {
+			"X-MitsContextKey" : homebridgeAccessory.platform.ContextKey
 			}
-		);
-  		return;
-  	}
-	homebridgeAccessory.airInfoRequestSent = true;
-  	this.log(homebridgeAccessory.name);
-  	var url = "https://app.melcloud.com/Mitsubishi.Wifi.Client/Device/Get?id=" + homebridgeAccessory.id + "&buildingID=" + homebridgeAccessory.buildingId;
-	var method = "get";
-	var that = this;
-	request({
-		url: url,
-		method: method,
-		headers: {
-		"X-MitsContextKey" : homebridgeAccessory.platform.ContextKey
-		}
-	}, function(err, response) {
-	  if (err || response.body.search("<!DOCTYPE html>") != -1) {
-		that.log("There was a problem getting info from: " + url);
-	  	that.log("for device: " + homebridgeAccessory.name);
-		that.log("Error: " + err);
-  		homebridgeAccessory.airInfo = null;
-		homebridgeAccessory.airInfoRequestSent = false;
-		for (var i = 0; i < homebridgeAccessory.airInfoRequestQueue.length; i++) {
-			homebridgeAccessory.airInfoRequestQueue[i].callback();
-		}
-		homebridgeAccessory.airInfoRequestQueue = [];
-	    callback();
-	  } else {
-  		homebridgeAccessory.airInfo = eval("(" + response.body + ")");
-		homebridgeAccessory.airInfoRequestSent = false;
-  		operation(callback, characteristic, service, homebridgeAccessory, value);
-		for (var i = 0; i < homebridgeAccessory.airInfoRequestQueue.length; i++) {
-			var c = homebridgeAccessory.airInfoRequestQueue[i];
-			c.operation(c.callback, c.characteristic, c.service, c.homebridgeAccessory, c.value);
-		}
-		homebridgeAccessory.airInfoRequestQueue = [];
-	  	// Cache airInfo data for 2 minutes
-  		setTimeout( function(){
+		}, function(err, response) {
+		  if (err || response.body.search("<!DOCTYPE html>") != -1) {
+			that.log("There was a problem getting info from: " + url);
+			that.log("for device: " + homebridgeAccessory.name);
+			that.log("Error: " + err);
 			homebridgeAccessory.airInfo = null;
-		}, 120*1000 );
-	  }
-    });
+			callback();
+		  } else {
+			homebridgeAccessory.airInfo = eval("(" + response.body + ")");
+			operation(callback, characteristic, service, homebridgeAccessory, value);
+			// Cache airInfo data for 1 minutes
+			setTimeout( function(){
+				homebridgeAccessory.airInfo = null;
+			}, 60*1000 );
+		  }
+  		  that.currentAirInfoExecution--;
+		  if (that.airInfoExecutionPending.length) {
+			var args = that.airInfoExecutionPending.shift()
+			that.log("Dequeuing remote request for: " + args[3].name + " - " + args[1].displayName);
+			that.proxyAirInfo.apply(that, args);
+		  }			
+		});
+	} else {
+	  	this.log("Queing remote request data for: " + homebridgeAccessory.name + " - " + characteristic.displayName);
+		this.airInfoExecutionPending.push(arguments);		
+	}
   },
   getAccessoryValue: function(callback, characteristic, service, homebridgeAccessory, value) {
   	var r = homebridgeAccessory.airInfo;
