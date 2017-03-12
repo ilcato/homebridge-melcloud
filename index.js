@@ -165,7 +165,7 @@ MelcloudPlatform.prototype = {
   		return;
   	}
   	this.log("Getting data for: " + homebridgeAccessory.name + " - " + characteristic.displayName);
-	if (this.currentAirInfoExecution < 2) {
+	if (this.currentAirInfoExecution < 1) {
 		homebridgeAccessory.airInfoRequestSent = true;
 		this.currentAirInfoExecution++;
 		var url = "https://app.melcloud.com/Mitsubishi.Wifi.Client/Device/Get?id=" + homebridgeAccessory.id + "&buildingID=" + homebridgeAccessory.buildingId;
