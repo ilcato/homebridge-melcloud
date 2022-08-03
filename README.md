@@ -1,3 +1,6 @@
+# NO MORE MAINTAINED ! PLEASE USE [HOMEBRIDGE-MELCLOUD-CONTROL](https://github.com/grzegorz914/homebridge-melcloud-control)
+
+
 # homebridge-melcloud
 Homebridge plugin for Mitsubishi Melcloud
 
